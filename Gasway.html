@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GasWay - Águas Claras, Brasília</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .squircle { border-radius: 2.5rem; }
+
+        .nav-item.active { color: #1e3a8a; transform: scale(1.1); }
+        .nav-item.active .icon-container {
+            background-color: #facc15;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(250, 204, 21, 0.3);
+            color: #1e3a8a;
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+
+        .star-active { color: #facc15 !important; }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            background-color: #ef4444;
+            border: 2px solid white;
+            border-radius: 9999px;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            border-radius: 2.5rem;
+            overflow: hidden;
+            border: 4px solid white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-overlay-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 900;
+            color: #1e3a8a;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 10;
+        }
+
+        .rank-badge {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            border: 2px solid #f1f5f9;
+            transition: all 0.2s;
+        }
+        .filter-chip.active {
+            background: #1e3a8a;
+            color: white;
+            border-color: #1e3a8a;
+        }
+
+        .fuel-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="antialiased text-slate-900">
+
+    <div class="max-w-md mx-auto h-screen flex flex-col relative bg-slate-50 shadow-2xl overflow-hidden">
+        
+        <!-- Header Fixo -->
+        <header class="bg-white p-5 shadow-lg z-20 border-b-4 border-yellow-400">
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-2">
+                    <svg width="35" height="35" viewBox="0 0 100 100" fill="none">
+                        <circle cx="50" cy="50" r="48" fill="#FACC15" />
+                        <path d="M70 40C70 55 50 75 50 75C50 75 30 55 30 40C30 28.9543 38.9543 20 50 20C61.0457 20 70 28.9543 70 40Z" fill="#1E40AF" />
+                        <path d="M50 30C55.5228 30 60 34.4772 60 40C60 45.5228 55.5228 50 50 50C44.4772 50 40 45.5228 40 40C40 34.4772 44.4772 30 50 30Z" fill="white" />
+                    </svg>
+                    <span class="text-xl font-black tracking-tighter text-blue-900 uppercase">GasWay</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="navigate('notificacoes')" class="bg-slate-100 p-2.5 rounded-xl text-blue-900 relative">
+                        <i class="fa-solid fa-bell"></i>
+                        <span id="notif-badge" class="notification-dot"></span>
+                    </button>
+                    <button onclick="navigate('perfil')" id="header-user-btn" class="bg-blue-900 p-2.5 rounded-xl text-white transition-transform active:scale-90">
+                        <i class="fa-solid fa-user"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Área de Conteúdo Dinâmico -->
+        <main id="main-content" class="flex-1 overflow-y-auto p-4 pb-28 space-y-6">
+            <!-- Conteúdo carregado via JS -->
+        </main>
+
+        <!-- Navegação Inferior -->
+        <nav class="bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center px-2 py-3 fixed bottom-0 w-full max-w-md z-30">
+            <button onclick="navigate('mapa')" id="nav-mapa" class="nav-item flex flex-col items-center gap-1 text-slate-300">
+                <div class="icon-container px-2 transition-all"><i class="fa-solid fa-map-location-dot text-xl"></i></div>
+                <span class="text-[9px] font-black uppercase">Mapa</span>
+            </button>
+            <button onclick="navigate('precos')" id="nav-precos" class="nav-item flex flex-col items-center gap-1 text-slate-300">
+                <div class="icon-container px-2 transition-all"><i class="fa-solid fa-tags text-xl"></i></div>
+                <span class="text-[9px] font-black uppercase">Preços</span>
+            </button>
+            <div class="relative -top-6">
+                <button onclick="openRating()" class="bg-yellow-400 text-blue-900 w-14 h-14 rounded-2xl shadow-xl shadow-yellow-200 border-4 border-white active:scale-90 transition-transform flex items-center justify-center">
+                    <i class="fa-solid fa-plus text-2xl"></i>
+                </button>
+            </div>
+            <button onclick="navigate('avaliar')" id="nav-avaliar" class="nav-item flex flex-col items-center gap-1 text-slate-300">
+                <div class="icon-container px-2 transition-all"><i class="fa-solid fa-star text-xl"></i></div>
+                <span class="text-[9px] font-black uppercase">Qualidade</span>
+            </button>
+            <button onclick="navigate('filtros')" id="nav-filtros" class="nav-item flex flex-col items-center gap-1 text-slate-300">
+                <div class="icon-container px-2 transition-all"><i class="fa-solid fa-sliders text-xl"></i></div>
+                <span class="text-[9px] font-black uppercase">Filtros</span>
+            </button>
+        </nav>
+
+        <!-- Modal de Avaliação -->
+        <div id="rating-modal" class="hidden fixed inset-0 bg-blue-900/60 backdrop-blur-sm z-50 flex items-end justify-center">
+            <div class="bg-white w-full max-w-md rounded-t-[3rem] p-8 animate-slide-up max-h-[90vh] overflow-y-auto scrollbar-hide">
+                <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 cursor-pointer" onclick="closeRating()"></div>
+                <h2 class="text-2xl font-black text-blue-900 mb-2">Avaliar Posto</h2>
+                <div class="space-y-6 mt-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400">Posto Selecionado</label>
+                        <select id="station-select" class="w-full mt-2 p-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-sm outline-none">
+                            <option value="Shell Águas Claras">Posto Shell - Águas Claras</option>
+                            <option value="Ipiranga Araucárias">Ipiranga - Av. Araucárias</option>
+                            <option value="Petrobras Castanheiras">Petrobras - Av. Castanheiras</option>
+                            <option value="BR Boulevard">BR Boulevard</option>
+                            <option value="Posto Extra">Posto Extra</option>
+                        </select>
+                    </div>
+                    <div class="space-y-4">
+                        <!-- Gasolina Comum -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-yellow-400 transition-all duration-300" data-fuel-block="gasolina">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">Gasolina Comum</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="gasolina">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gasolina', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gasolina', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gasolina', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gasolina', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gasolina', 5)"></i>
+                            </div>
+                        </div>
+                        <!-- Gasolina Aditivada -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-yellow-500 transition-all duration-300" data-fuel-block="aditivada">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">Gasolina Aditivada</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="aditivada">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('aditivada', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('aditivada', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('aditivada', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('aditivada', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('aditivada', 5)"></i>
+                            </div>
+                        </div>
+                        <!-- Etanol -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-green-600 transition-all duration-300" data-fuel-block="etanol">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">Etanol</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="etanol">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('etanol', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('etanol', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('etanol', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('etanol', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('etanol', 5)"></i>
+                            </div>
+                        </div>
+                        <!-- Diesel S10 -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-red-500 transition-all duration-300" data-fuel-block="diesel10">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">Diesel S10</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="diesel10">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel10', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel10', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel10', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel10', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel10', 5)"></i>
+                            </div>
+                        </div>
+                        <!-- Diesel S500 -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-orange-500 transition-all duration-300" data-fuel-block="diesel500">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">Diesel S500</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="diesel500">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel500', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel500', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel500', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel500', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('diesel500', 5)"></i>
+                            </div>
+                        </div>
+                        <!-- GNV -->
+                        <div class="fuel-rating-block bg-slate-50 p-4 rounded-2xl border-l-4 border-blue-500 transition-all duration-300" data-fuel-block="gnv">
+                            <span class="text-xs font-black text-blue-900 uppercase italic">GNV</span>
+                            <div class="flex gap-3 text-2xl text-slate-300 mt-2" data-fuel="gnv">
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gnv', 1)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gnv', 2)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gnv', 3)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gnv', 4)"></i>
+                                <i class="fa-solid fa-star cursor-pointer" onclick="setRating('gnv', 5)"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="reset-rating-btn" onclick="resetRatingSelection()" class="hidden w-1/3 bg-slate-200 text-slate-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-sm active:scale-95 text-xs">Trocar</button>
+                        <button onclick="submitRating()" class="flex-1 bg-blue-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 text-xs">Enviar Avaliação</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed top-10 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-full font-black text-sm z-[100] shadow-2xl animate-bounce">
+        <i class="fa-solid fa-check-circle mr-2"></i> Avaliação Enviada!
+    </div>
+
+    <script>
+        const content = document.getElementById('main-content');
+        const modal = document.getElementById('rating-modal');
+        const ratings = {};
+
+        // Gerando o ranking de 30 postos dinamicamente
+        const stationNames = ["Shell Águas Claras", "Ipiranga Araucárias", "Petrobras Castanheiras", "BR Boulevard", "Posto Extra", "Texaco Park", "Posto 200", "Auto Posto 300", "GasWay Station", "Eixo Sul Posto", "Norte Gás", "Posto Alpha", "Posto Beta", "Posto Gama", "Posto Delta", "Posto Epsilon", "Posto Zeta", "Posto Eta", "Posto Theta", "Posto Iota", "Posto Kappa", "Posto Lambda", "Posto Mu", "Posto Nu", "Posto Xi", "Posto Omicron", "Posto Pi", "Posto Rho", "Posto Sigma", "Posto Tau"];
+
+        let qualidadeRankingHTML = `<div class="space-y-4">
+            <h2 class="text-2xl font-black text-blue-900 italic uppercase">Ranking de Qualidade</h2>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mb-4">Top 30 Postos da Região</p>
+        `;
+        
+        stationNames.forEach((name, i) => {
+            let badgeBg = "bg-slate-200 text-slate-500";
+            let borderClass = "border-transparent";
+            
+            if(i === 0) { badgeBg = "bg-yellow-400 text-yellow-900"; borderClass = "border-yellow-400"; }
+            else if(i === 1) { badgeBg = "bg-slate-300 text-slate-800"; borderClass = "border-slate-300"; }
+            else if(i === 2) { badgeBg = "bg-amber-600 text-white"; borderClass = "border-amber-600"; }
+
+            let score = (5.0 - (i * 0.05)).toFixed(1);
+            
+            qualidadeRankingHTML += `
+                <div class="bg-white p-4 squircle shadow-sm flex items-center justify-between border-l-4 ${borderClass}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${badgeBg}">${i + 1}º</div>
+                        <h4 class="font-black text-sm text-blue-900 truncate w-32">${name}</h4>
+                    </div>
+                    <div class="flex items-center gap-1 text-yellow-400 font-bold text-sm">
+                        <i class="fa-solid fa-star"></i> ${score}
+                    </div>
+                </div>
+            `;
+        });
+        qualidadeRankingHTML += `</div>`;
+
+        const screens = {
+            mapa: `
+                <div class="map-container">
+                    <iframe width="100%" height="100%" frameborder="0" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15354.19561078759!2d-48.028!3d-15.838!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x935a34f9a0c30939%3A0x6442655513d8036!2zw4FndWFzIENsYXJhcywgQnJhc8OtbGlhIC0gREY!5e0!3m2!1spt-BR!2sbr!4v1710000000000!5m2!1spt-BR!2sbr"></iframe>
+                    <button onclick="openExternalMaps()" class="map-overlay-btn"><i class="fa-solid fa-up-right-from-square"></i> ABRIR NO MAPS</button>
+                </div>
+                <div class="space-y-3 pb-4">
+                    <h3 class="font-black text-blue-900 uppercase text-xs tracking-widest mt-2">Destaques em Águas Claras</h3>
+                    
+                    <div class="bg-white p-4 squircle shadow-md flex items-center gap-4 border-l-8 border-yellow-400">
+                        <div class="bg-yellow-400 w-10 h-10 rounded-xl flex items-center justify-center text-yellow-900 font-black">1º</div>
+                        <div class="flex-1">
+                            <h4 class="font-black text-blue-900 leading-tight text-sm">Shell Águas Claras</h4>
+                            <span class="text-[9px] text-slate-400 font-bold tracking-tight">MELHOR AVALIADO</span>
+                        </div>
+                        <p class="font-black text-blue-600 text-sm italic">R$ 5,89</p>
+                    </div>
+
+                    <div class="bg-white p-4 squircle shadow-md flex items-center gap-4 border-l-8 border-slate-300">
+                        <div class="bg-slate-300 w-10 h-10 rounded-xl flex items-center justify-center text-slate-800 font-black">2º</div>
+                        <div class="flex-1">
+                            <h4 class="font-black text-blue-900 leading-tight text-sm">Ipiranga Araucárias</h4>
+                            <span class="text-[9px] text-slate-400 font-bold tracking-tight">ÓTIMO CUSTO-BENEFÍCIO</span>
+                        </div>
+                        <p class="font-black text-blue-600 text-sm italic">R$ 5,75</p>
+                    </div>
+
+                    <div class="bg-white p-4 squircle shadow-md flex items-center gap-4 border-l-8 border-amber-600">
+                        <div class="bg-amber-600 w-10 h-10 rounded-xl flex items-center justify-center text-white font-black">3º</div>
+                        <div class="flex-1">
+                            <h4 class="font-black text-blue-900 leading-tight text-sm">Petrobras Castanheiras</h4>
+                            <span class="text-[9px] text-slate-400 font-bold tracking-tight">QUALIDADE GARANTIDA</span>
+                        </div>
+                        <p class="font-black text-blue-600 text-sm italic">R$ 5,85</p>
+                    </div>
+
+                    <div class="bg-white p-4 squircle shadow-sm flex items-center gap-4 border-l-8 border-slate-200">
+                        <div class="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 font-black">4º</div>
+                        <div class="flex-1">
+                            <h4 class="font-black text-blue-900 leading-tight text-sm">BR Boulevard</h4>
+                        </div>
+                        <p class="font-black text-blue-600 text-sm italic">R$ 5,90</p>
+                    </div>
+
+                    <div class="bg-white p-4 squircle shadow-sm flex items-center gap-4 border-l-8 border-slate-200">
+                        <div class="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 font-black">5º</div>
+                        <div class="flex-1">
+                            <h4 class="font-black text-blue-900 leading-tight text-sm">Posto Extra</h4>
+                        </div>
+                        <p class="font-black text-blue-600 text-sm italic">R$ 5,69</p>
+                    </div>
+                </div>
+            `,
+            precos: `
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-black text-blue-900 italic uppercase">Ranking de Preços</h2>
+                    <div class="bg-blue-900 p-4 rounded-3xl text-white flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-users"></i>
+                            <span class="text-[10px] font-black uppercase tracking-tighter">+100 usuários na região</span>
+                        </div>
+                        <i class="fa-solid fa-circle-check text-green-400"></i>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="bg-white p-4 squircle shadow-md flex justify-between items-center border-l-4 border-green-500">
+                            <div>
+                                <h4 class="font-black text-sm text-blue-900">Posto Extra</h4>
+                                <p class="text-[9px] font-bold text-green-600 italic">Atualizado agora</p>
+                            </div>
+                            <p class="font-black text-xl text-green-600 tracking-tighter leading-none">R$ 5,69</p>
+                        </div>
+                        <div class="bg-white p-4 squircle shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="font-black text-sm text-blue-900">Ipiranga Araucárias</h4>
+                                <p class="text-[9px] font-bold text-slate-400 italic">Há 2 horas</p>
+                            </div>
+                            <p class="font-black text-lg text-blue-900 tracking-tighter leading-none">R$ 5,75</p>
+                        </div>
+                        <div class="bg-white p-4 squircle shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="font-black text-sm text-blue-900">Petrobras Castanheiras</h4>
+                                <p class="text-[9px] font-bold text-slate-400 italic">Há 5 horas</p>
+                            </div>
+                            <p class="font-black text-lg text-blue-900 tracking-tighter leading-none">R$ 5,85</p>
+                        </div>
+                        <div class="bg-white p-4 squircle shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="font-black text-sm text-blue-900">Shell Águas Claras</h4>
+                                <p class="text-[9px] font-bold text-slate-400 italic">Ontem</p>
+                            </div>
+                            <p class="font-black text-lg text-blue-900 tracking-tighter leading-none">R$ 5,89</p>
+                        </div>
+                        <div class="bg-white p-4 squircle shadow-sm flex justify-between items-center border-l-4 border-red-400">
+                            <div>
+                                <h4 class="font-black text-sm text-blue-900">BR Boulevard</h4>
+                                <p class="text-[9px] font-bold text-slate-400 italic">Ontem</p>
+                            </div>
+                            <p class="font-black text-lg text-red-500 tracking-tighter leading-none">R$ 5,90</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            avaliar: qualidadeRankingHTML,
+            notificacoes: `
+                <div class="space-y-6 animate-slide-up">
+                    <h2 class="text-2xl font-black text-blue-900 uppercase italic">Notificações</h2>
+                    
+                    <div class="bg-white p-5 rounded-[2rem] shadow-lg border-2 border-yellow-400 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-yellow-400 px-3 py-1 rounded-bl-xl text-[8px] font-black uppercase text-blue-900">7 Dias atrás</div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-900 text-white p-3 rounded-xl"><i class="fa-solid fa-gas-pump"></i></div>
+                            <div class="flex-1">
+                                <h4 class="text-xs font-black text-blue-900 uppercase">Avalie sua Gasolina</h4>
+                                <p class="text-[10px] text-slate-500 mt-1 leading-tight">Faz uma semana que você abasteceu no <b>Shell Águas Claras</b>. O desempenho foi bom?</p>
+                                <div class="mt-3 flex gap-2">
+                                    <button onclick="openRating()" class="bg-blue-900 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase">Avaliar Produto</button>
+                                    <button class="bg-slate-100 text-slate-400 px-3 py-2 rounded-lg text-[9px] font-black uppercase">Ignorar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 relative opacity-75">
+                         <div class="flex items-start gap-4">
+                            <div class="bg-green-600 text-white p-3 rounded-xl"><i class="fa-solid fa-flask"></i></div>
+                            <div class="flex-1">
+                                <h4 class="text-xs font-black text-slate-400 uppercase">Histórico: Álcool</h4>
+                                <p class="text-[10px] text-slate-400 mt-1 italic">Você avaliou o Álcool do Posto Ipiranga positivamente.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            filtros: `
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-black text-blue-900 uppercase italic">Filtros</h2>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-slate-400">Tipo de Combustível</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="filter-chip active">Gasolina Comum</button>
+                            <button class="filter-chip">Gasolina Aditivada</button>
+                            <button class="filter-chip">Etanol</button>
+                            <button class="filter-chip">Diesel S10</button>
+                            <button class="filter-chip">Diesel S500</button>
+                            <button class="filter-chip">GNV</button>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-slate-400">Serviços e Comodidades</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="filter-chip">Calibrador de Pneus</button>
+                            <button class="filter-chip">Loja de Conveniência</button>
+                            <button class="filter-chip">Lava-Jato</button>
+                            <button class="filter-chip">Banheiros</button>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-slate-400">Preço Máximo (R$ <span id="price-val">6,00</span>)</label>
+                        <input type="range" min="4.00" max="8.00" step="0.01" value="6.00" oninput="document.getElementById('price-val').innerText=this.value.replace('.', ',')" class="w-full h-2 bg-slate-200 rounded-lg appearance-none accent-blue-900">
+                    </div>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase text-slate-400">Distância (km: <span id="dist-val">5</span>)</label>
+                        <input type="range" min="1" max="20" value="5" oninput="document.getElementById('dist-val').innerText=this.value" class="w-full h-2 bg-slate-200 rounded-lg appearance-none accent-blue-900">
+                    </div>
+                    <button onclick="navigate('mapa')" class="w-full bg-blue-900 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg mt-4">Buscar no Mapa</button>
+                </div>
+            `,
+            perfil: `
+                <div class="space-y-6 animate-slide-up">
+                    <div class="bg-white p-6 squircle shadow-xl border-b-8 border-yellow-400">
+                        <div class="flex items-center gap-5">
+                            <div class="w-16 h-16 bg-blue-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                                <i class="fa-solid fa-user-astronaut text-3xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-black text-blue-900 tracking-tighter">Arthur B.</h2>
+                                <span class="rank-badge">Nível 12 • Especialista</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-4 squircle shadow-sm">
+                            <p class="text-[8px] font-black text-slate-400 uppercase italic">Combustível Avaliado</p>
+                            <h4 class="text-lg font-black text-blue-900 mt-1">24 Litros</h4>
+                        </div>
+                        <div class="bg-white p-4 squircle shadow-sm">
+                            <p class="text-[8px] font-black text-slate-400 uppercase italic">Economia Total</p>
+                            <h4 class="text-lg font-black text-blue-900 mt-1">R$ 142,50</h4>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                         <h3 class="font-black text-blue-900 uppercase text-xs tracking-widest px-2">Ranking de Avaliações</h3>
+                         <div class="bg-white p-4 rounded-3xl border-l-4 border-yellow-400 shadow-sm flex justify-between items-center">
+                            <div>
+                                <span class="fuel-badge bg-yellow-100 text-yellow-700">Gasolina</span>
+                                <h4 class="text-[10px] font-black text-blue-900 uppercase mt-1">Shell Águas Claras</h4>
+                            </div>
+                            <div class="text-yellow-400 text-xs"><i class="fa-solid fa-star"></i> 5.0</div>
+                         </div>
+                    </div>
+                    <button class="w-full py-4 text-red-500 font-black uppercase text-[10px] tracking-widest">Desconectar</button>
+                </div>
+            `
+        };
+
+        function openExternalMaps() { window.open('https://www.google.com/maps/search/posto+de+combustivel+aguas+claras+brasilia', '_blank'); }
+
+        function setRating(fuel, value) {
+            // Desabilita os outros combustiveis
+            const allBlocks = document.querySelectorAll('.fuel-rating-block');
+            allBlocks.forEach(block => {
+                if (block.getAttribute('data-fuel-block') !== fuel) {
+                    block.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
+                } else {
+                    block.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
+                }
+            });
+
+            ratings[fuel] = value;
+            const container = document.querySelector(`[data-fuel="${fuel}"]`);
+            const stars = container.querySelectorAll('.fa-star');
+            stars.forEach((star, index) => {
+                if (index < value) star.classList.add('star-active');
+                else star.classList.remove('star-active');
+            });
+
+            // Mostra o botão para resetar caso o usuário queira avaliar outro
+            document.getElementById('reset-rating-btn').classList.remove('hidden');
+        }
+
+        function resetRatingSelection() {
+            const allBlocks = document.querySelectorAll('.fuel-rating-block');
+            allBlocks.forEach(block => {
+                block.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
+                const stars = block.querySelectorAll('.fa-star');
+                stars.forEach(star => star.classList.remove('star-active'));
+            });
+            for(let key in ratings) ratings[key] = 0;
+            document.getElementById('reset-rating-btn').classList.add('hidden');
+        }
+
+        function submitRating() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => { 
+                toast.classList.add('hidden'); 
+                closeRating(); 
+                document.getElementById('notif-badge').classList.add('hidden');
+            }, 2000);
+        }
+
+        function navigate(screen) {
+            if (screens[screen]) content.innerHTML = screens[screen];
+            const navButtons = document.querySelectorAll('.nav-item');
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`nav-${screen}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            const headerBtn = document.getElementById('header-user-btn');
+            if(screen === 'perfil') headerBtn.classList.add('ring-4', 'ring-yellow-400');
+            else headerBtn.classList.remove('ring-4', 'ring-yellow-400');
+
+            // Toggle active no filtro de chips
+            if(screen === 'filtros') {
+                const chips = document.querySelectorAll('.filter-chip');
+                chips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        chip.classList.toggle('active');
+                    });
+                });
+            }
+        }
+
+        function openRating() { modal.classList.remove('hidden'); }
+        function closeRating() { 
+            modal.classList.add('hidden'); 
+            resetRatingSelection(); // Limpa a escolha ao fechar
+        }
+
+        window.addEventListener('load', () => navigate('mapa'));
+        window.onclick = (e) => { if (e.target == modal) closeRating(); }
+    </script>
+</body>
+</html>

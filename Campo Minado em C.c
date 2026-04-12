@@ -1,3 +1,5 @@
+// COPIE O CODIGO INTEIRO ABAIXO E COLE EM UM COMPILADOR DE LINGUAGEM C
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

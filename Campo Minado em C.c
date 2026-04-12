@@ -1,4 +1,7 @@
-// COPIE O CODIGO INTEIRO ABAIXO E COLE EM UM COMPILADOR DE LINGUAGEM C
+// Para executar este projeto:
+// 1. Copie todo o código
+// 2. Cole em um compilador de C (ex: OnlineGDB)
+// 3. Compile e execute
 
 #include <stdio.h>
 #include <stdlib.h>
